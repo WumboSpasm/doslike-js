@@ -41,14 +41,6 @@ let grid = {
     array: new Array(char.range.x * char.range.y)
 };
 
-// Fill the array with placeholder properties
-for (let i = 0; i < grid.array.length; i++) {
-    grid.array[i] = {
-        text: ' ',
-        color: ['#000', '#fff']
-    }
-};
-
 // Helper methods that should be used to access the array and other important properties
 let dos = {
     view: {
@@ -62,8 +54,10 @@ let dos = {
             
             if (!overflow && (chars.length > width)) {
                 chars = chars.substr(0, width).split('');
-            } else
+            } else if (overflow)
                 chars = chars.padEnd(chars.length - (chars.length % width) + width, ' ').split('');
+            else
+                chars = chars.padEnd(width, ' ').split('');
             
             let begin = char.pos(x, y);
             if (begin < 0)
@@ -92,10 +86,18 @@ let dos = {
         x: -1, y: -1, 
         last: { x: -1, y: -1 },
         down: false, idle: -1
-    },
-    
-    frame: 0,
-    fps: 0
+    }
+};
+
+// Fill the array with placeholder properties
+for (let i = 0; i < grid.array.length; i++) {
+    grid.array[i] = {
+        text: ' ',
+        color: [
+            [0,0,0],
+            [1,1,1]
+        ]
+    }
 };
 
 // Check if mouse position has changed
@@ -131,27 +133,34 @@ function update() {
     
     for (let i = 0; i < grid.array.length; i++) {
         let x = i % char.range.x,
-            y = (i - (i % char.range.x)) / char.range.x;
+            y = (i - (i % char.range.x)) / char.range.x,
+            bgColor = '#',
+            fgColor = '#';
         
-        ctx.fillStyle = grid.array[i].color[0];
+        for (let j = 0; j < 3; j++) {
+            if (grid.array[i].color[0].every(chn => chn === grid.array[i].color[0][0]))
+                bgColor += (grid.array[i].color[0][j] * 10).toString(16);
+            else
+                bgColor += (grid.array[i].color[0][j] * 8).toString(16);
+            
+            if (grid.array[i].color[1].every(chn => chn === grid.array[i].color[1][0]))
+                fgColor += ((grid.array[i].color[1][j] * 10) + 5).toString(16);
+            else
+                fgColor += (grid.array[i].color[1][j] * 15).toString(16);
+        }
+        
+        ctx.fillStyle = bgColor;
         ctx.fillRect(grid.x * x, grid.y * y, grid.x, grid.y);
         
-        ctx.fillStyle = grid.array[i].color[1];
+        ctx.fillStyle = fgColor;
         ctx.fillText(grid.array[i].text, (grid.x * x) + grid.scale(char.offset.x), (grid.y * y) + grid.scale(char.offset.y));
     }
+    
     
     if (dos.mouse.x != -1)
         dos.mouse.idle++
     else
         dos.mouse.idle = -1;
     
-    dos.frame++;
-    
     requestAnimationFrame(update);
 }
-
-// Handle FPS counter
-setInterval(() => {
-    dos.fps = dos.frame;
-    dos.frame = 0;
-}, 1000);
